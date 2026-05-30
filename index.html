@@ -3,148 +3,270 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AXON Mobile Terminal</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>JARVIS Mobile Terminal</title>
     <style>
-        .arc-glow {
-            box-shadow: 0 0 30px rgba(6, 182, 212, 0.6), inset 0 0 20px rgba(6, 182, 212, 0.4);
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #040914;
+            color: #00f3ff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            padding: 20px;
+            overflow: hidden;
         }
-        .pulsing {
-            animation: pulse 1.5s infinite ease-in-out;
+        .header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+            padding-bottom: 10px;
         }
-        .listening-glow {
-            box-shadow: 0 0 40px rgba(234, 179, 8, 0.6);
-            border-color: rgba(234, 179, 8, 0.8) !important;
+        .system-title { color: #00f3ff; font-weight: bold; }
+        .system-status { color: #ffaa00; animation: blink 1.5s infinite; }
+        .system-status.online { color: #00ff66; }
+        
+        .main-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            width: 100%;
         }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 30px rgba(6, 182, 212, 0.6); }
-            50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 50px rgba(6, 182, 212, 0.9); }
+        .arc-container {
+            width: 220px;
+            height: 220px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
         }
+        .outer-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px dashed #00f3ff;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+            animation: rotateCW 10s linear infinite;
+        }
+        .inner-ring {
+            position: absolute;
+            width: 75%;
+            height: 75%;
+            border: 2px solid rgba(0, 243, 255, 0.4);
+            border-radius: 50%;
+        }
+        .core {
+            position: absolute;
+            width: 55%;
+            height: 55%;
+            background: radial-gradient(circle, rgba(0,243,255,0.4) 0%, rgba(4,9,20,1) 70%);
+            border: 2px solid #00f3ff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+        .core span {
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px #00f3ff;
+        }
+        
+        .listening-glow .outer-ring {
+            border-color: #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.6);
+            animation: rotateCW 3s linear infinite;
+        }
+        .listening-glow .core {
+            border-color: #00ff66;
+            background: radial-gradient(circle, rgba(0,255,102,0.5) 0%, rgba(4,9,20,1) 70%);
+            box-shadow: 0 0 30px rgba(0, 255, 102, 0.8);
+        }
+        
+        .console-box {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(0, 243, 255, 0.03);
+            border: 1px solid rgba(0, 243, 255, 0.15);
+            border-radius: 8px;
+            padding: 15px;
+            height: 140px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            box-shadow: inset 0 0 10px rgba(0,243,255,0.05);
+        }
+        .log-section { font-size: 11px; color: rgba(0, 243, 255, 0.5); margin-bottom: 8px; }
+        .output-section { font-size: 13px; color: #ffffff; line-height: 1.4; }
+        
+        @keyframes rotateCW { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
-<body class="bg-slate-950 text-cyan-400 font-sans min-h-screen flex flex-col justify-between p-6 overflow-hidden">
+<body>
 
-    <!-- Top HUD -->
-    <div class="flex justify-between items-center text-xs tracking-widest uppercase border-b border-cyan-900/50 pb-3">
-        <div>CORE_SYSTEM: <span class="text-emerald-400 font-bold">AXON_v1.2</span></div>
-        <div id="status-hud" class="text-amber-400">SLEEP_MODE</div>
+    <div class="header">
+        <div class="system-title">CORE_SYSTEM: JARVIS_V2.0</div>
+        <div id="status-tag" class="system-status">SLEEP_MODE</div>
     </div>
 
-    <!-- Center Stage -->
-    <div class="flex flex-col items-center justify-center my-auto gap-8">
-        <div id="arc-reactor" class="w-44 h-44 rounded-full border-4 border-cyan-400/30 flex items-center justify-center arc-glow bg-slate-900 transition-all duration-300 cursor-pointer">
-            <div class="w-36 h-36 rounded-full border-2 border-dashed border-cyan-400/50 flex items-center justify-center animate-[spin_30s_linear_infinite]">
-                <div class="w-24 h-24 rounded-full bg-cyan-500/10 border border-cyan-400 flex items-center justify-center">
-                    <span id="status-text" class="text-xs font-bold tracking-wider uppercase text-cyan-200 text-center px-2">Tap to Initialize</span>
-                </div>
+    <div class="main-container">
+        <div class="arc-container" id="arc-reactor">
+            <div class="outer-ring"></div>
+            <div class="inner-ring"></div>
+            <div class="core">
+                <span id="core-text">TAP TO<br>WAKE</span>
             </div>
         </div>
-
-        <!-- Terminal Output -->
-        <div class="w-full max-w-md bg-slate-900/80 border border-cyan-800/40 rounded-lg p-4 h-36 flex flex-col justify-end gap-2 text-sm backdrop-blur-sm">
-            <div class="text-cyan-600/70 select-none">// SYSTEM MONITOR</div>
-            <div id="user-transcript" class="text-slate-400 italic min-h-[20px]">System offline. Tap the reactor.</div>
-            <div id="jarvis-response" class="text-cyan-300 font-medium min-h-[20px] border-t border-cyan-900/30 pt-2">"Waiting for authorization..."</div>
-        </div>
     </div>
 
-    <!-- Footer Diagnostics -->
-    <div class="w-full max-w-md mx-auto text-center text-[10px] tracking-widest text-cyan-700 uppercase">
-        Wake Word: Say <span class="text-cyan-400 font-bold">"Axon"</span> anywhere in your sentence.
+    <div class="console-box">
+        <div class="log-section" id="log-text">// SYSTEM MONITOR<br>Tap core to initialize voice matrix...</div>
+        <div class="output-section" id="output-text"></div>
     </div>
 
     <script>
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition;
-        let isSystemActive = false; 
-        let isSpeaking = false;
-
         const arcReactor = document.getElementById('arc-reactor');
-        const statusText = document.getElementById('status-text');
-        const statusHud = document.getElementById('status-hud');
-        const userTranscript = document.getElementById('user-transcript');
-        const jarvisResponse = document.getElementById('jarvis-response');
+        const statusTag = document.getElementById('status-tag');
+        const coreText = document.getElementById('core-text');
+        const logText = document.getElementById('log-text');
+        const outputText = document.getElementById('output-text');
 
-        if (SpeechRecognition) {
+        let recognition;
+        let isListening = false;
+        let synth = window.speechSynthesis;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
-            // Continuous is key: keep listening in the background
-            recognition.continuous = true; 
+            recognition.continuous = true;
             recognition.interimResults = false;
             recognition.lang = 'en-US';
 
             recognition.onstart = () => {
-                isSystemActive = true;
-                statusHud.innerText = "LISTENING...";
-                statusHud.className = "text-emerald-400 font-bold";
-                statusText.innerText = "Say 'Axon'";
-                userTranscript.innerText = "Listening for wake word...";
-                arcReactor.classList.add('pulsing');
-            };
-
-            recognition.onend = () => {
-                // If system shouldn't be off, auto-restart mic (fixes mobile timeouts)
-                if (isSystemActive && !isSpeaking) {
-                    recognition.start();
-                } else if (!isSpeaking) {
-                    setSleepState();
-                }
+                isListening = true;
+                statusTag.innerText = "LISTENING...";
+                statusTag.className = "system-status online";
+                coreText.innerHTML = "SAY<br>'JARVIS'";
+                logText.innerHTML = "// SYSTEM MONITOR<br>Listening for wake word...";
             };
 
             recognition.onresult = (event) => {
-                const lastResultIndex = event.results.length - 1;
-                const transcript = event.results[lastResultIndex][0].transcript.trim();
-                const lowerTranscript = transcript.toLowerCase();
+                const current = event.resultIndex;
+                const transcript = event.results[current][0].transcript;
+                const lowerTranscript = transcript.toLowerCase().trim();
                 
-                userTranscript.innerText = `Heard: "${transcript}"`;
-
-                // WAKE WORD CHECK: Does the sentence contain "axon" or "action"? 
-                // (Added 'action' as speech engines sometimes mishear 'axon')
-                if (lowerTranscript.includes('axon') || lowerTranscript.includes('action')) {
-                    
-                    // Visual feedback that Axon woke up
+                // Wake words: jarvis, service, java, charlie
+                if (lowerTranscript.includes('jarvis') || lowerTranscript.includes('service') || lowerTranscript.includes('java')) {
                     arcReactor.classList.add('listening-glow');
-                    statusText.innerText = "Processing...";
-                    
-                    // Clean the text to see what command came after the name
-                    processAxonCommand(lowerTranscript);
+                    logText.innerHTML = `// INPUT DETECTED<br>"${transcript}"`;
+                    processJarvisCommand(lowerTranscript);
+                } else {
+                    logText.innerHTML = `// BACKGROUND NOISE<br>"${transcript}" (Waiting for 'Jarvis')`;
                 }
             };
 
-            recognition.onerror = (err) => {
-                console.error("Speech Error:", err.error);
-                // Auto-restart on network dropouts
-                if (err.error === 'network') {
-                    setTimeout(() => { if(isSystemActive) recognition.start(); }, 1000);
+            recognition.onerror = (event) => {
+                console.error("Speech error", event.error);
+                if(event.error === 'not-allowed') {
+                    outputText.innerText = "Error: Microphone permission denied.";
                 }
             };
+
+            recognition.onend = () => {
+                if (isListening) {
+                    recognition.start(); // Auto restart if cut off
+                } else {
+                    resetTerminal();
+                }
+            };
+
         } else {
-            statusText.innerText = "Unsupported";
-            jarvisResponse.innerText = "Speech API not available on this device.";
+            logText.innerText = "Speech recognition not supported in this browser.";
         }
 
-        // Tap to Boot/Shutdown system
         arcReactor.addEventListener('click', () => {
-            if (!recognition) return;
-
-            if (!isSystemActive) {
-                // Unlocks audio layer on iOS/Android
-                window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
-                recognition.start();
-                speak("Core systems online. Axon matrix initialized. Standing by, sir.");
+            if (!isListening) {
+                if(recognition) {
+                    recognition.start();
+                    speak("Core systems online. Jarvis is at your service, sir.");
+                }
             } else {
-                isSystemActive = false;
-                recognition.stop();
-                window.speechSynthesis.cancel();
-                setSleepState();
+                isListening = false;
+                if(recognition) recognition.stop();
+                resetTerminal();
             }
         });
 
-        function setSleepState() {
-            statusHud.innerText = "SLEEP_MODE";
-            statusHud.className = "text-amber-400";
-            statusText.innerText = "Tap to Wake";
-            arcReactor.classList.remove('pulsing', 'listening-glow');
+        function resetTerminal() {
+            statusTag.innerText = "SLEEP_MODE";
+            statusTag.className = "system-status";
+            coreText.innerHTML = "TAP TO<br>WAKE";
+            arcReactor.classList.remove('listening-glow');
         }
+
+        function speak(text) {
+            if (synth.speaking) { synth.cancel(); }
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 1.0;
+            synth.speak(utterance);
+            outputText.innerText = `JARVIS: "${text}"`;
+        }
+
+        function processJarvisCommand(speech) {
+            let reply = "Yes sir? I heard my name, but I couldn't isolate a clean instruction matrix.";
+            
+            setTimeout(() => {
+                if (speech.includes('time')) {
+                    const now = new Date();
+                    reply = `The current system time is ${now.getHours()} hours and ${now.getMinutes()} minutes, sir.`;
+                    speak(reply);
+                } 
+                else if (speech.includes('status') || speech.includes('diagnostic')) {
+                    reply = "All auxiliary power routing is stable. CPU temperature normal. I am fully operational.";
+                    speak(reply);
+                } 
+                else if (speech.includes('youtube')) {
+                    reply = "Opening YouTube interface now, sir.";
+                    speak(reply);
+                    window.open('https://www.youtube.com', '_blank');
+                }
+                else if (speech.includes('hello') || speech.includes('wake up')) {
+                    reply = "Online and ready, sir. What are your coordinates today?";
+                    speak(reply);
+                }
+                else if (speech.includes('clear')) {
+                    outputText.innerText = "";
+                    logText.innerHTML = "// SYSTEM MONITOR<br>Console cleared.";
+                    arcReactor.classList.remove('listening-glow');
+                    return;
+                }
+                else {
+                    speak(reply);
+                }
+                
+                setTimeout(() => {
+                    arcReactor.classList.remove('listening-glow');
+                }, 4000);
+                
+            }, 500);
+        }
+    </script>
+</body>
+</html>
 
         // Command Processing Array
         function processAxonCommand(fullSpeech) {
